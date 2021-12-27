@@ -11,44 +11,34 @@
 # Evaluate the sum of all the amicable numbers under 10000.
 
 # ----Solution----
+library(tidyverse)
 library(numbers)
-library(purrr)
 
-# Function to calculate the sum of proper divisors:
-d_f <- function(x) {
-  xx <- divisors(x)
-  xx[-length(xx)] |> sum()
+# Function to calculate the sum of divisors of x:
+div_sums <- function(x) {
+  # Since numbers::divisors() returns all divisors of x and x itself, we use
+  # head(n = -1) to omit the x then sum the result:
+  f <- \(x) numbers::divisors(x) |> head(-1) |> sum()
+
+  # map f() over all elements of x:
+  x |> purrr::map_dbl(.f = f)
 }
 
-# vectorise that:
-d_f_v <- function(x) {
-  x |> map_dbl(.f = d_f)
-}
+# check if that works:
+div_sums(1:1000)
 
-d_f_v(220)
-d_f(220)
+# So far so good!
 
-# all numbers from 1 to 10000:
-x <- 1:10000
+# Create a df with columns:
+# a: 1:10000
+# b: div_sums(a)
+# c: div_sums(b)
+DF <- tibble(
+  a = 1:10000,
+  b = div_sums(a)
+) |>
+  filter(b > 0) |>  # get non-negative values of b
+  mutate(c = div_sums(b))
 
-# Get d(x):
-d_x <- d_f_v(x)
-
-# initialize amicables to 0:
-amicables <- numeric(0)
-
-for (a in 1:10000) {
-  d_a <- d_x[a]
-  for (b in 1:10000) {
-    if (a != b) {
-      d_b <- d_x[b]
-
-      if (b == d_a && a == d_b) {
-        n <- length(amicables)
-        amicables[(n + 1):(n + 2)] <- c(a, b)
-      }
-    }
-  }
-}
-
-sum(amicables) / 2
+# We want the rows where a is equal to div_sums of b ie. c but a != b:
+DF |> filter(a == c & a != b) |> pull(c) |> sum()
